@@ -71,6 +71,7 @@ impl RpcServer {
             .start_http(&format!("127.0.0.1:{}", port).parse().map_err(|_| Error::internal_error())?)
             .expect("Failed to start RPC server");
 
+        println!("RPC server started on port {}", port);
         server.wait();
 
         Ok(())

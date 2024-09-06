@@ -1,6 +1,5 @@
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use dotenv::dotenv;
 use std::env;
 use crate::schema::blocks;
 use crate::core::Block;
@@ -11,7 +10,6 @@ pub struct Database {
 
 impl Database {
     pub fn new() -> Result<Self, diesel::ConnectionError> {
-        dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let connection = PgConnection::establish(&database_url)?;
         Ok(Database { connection })
