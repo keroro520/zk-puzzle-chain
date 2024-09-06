@@ -11,7 +11,7 @@ table! {
     }
 }
 
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, QueryableByName, Selectable)]
 #[diesel(table_name = blocks)]
 pub struct StoredBlock {
     pub number: i64,
@@ -20,9 +20,8 @@ pub struct StoredBlock {
     pub zk_pow_receipt: Vec<u8>,
 }
 
-impl From<Block> for StoredBlock {
-    fn from(block: Block) -> Self {
-
+impl From<&Block> for StoredBlock {
+    fn from(block: &Block) -> Self {
         StoredBlock {
             number: block.number as i64,
             hash: block.hash().to_vec(),
