@@ -34,6 +34,15 @@ impl Database {
         Ok(result.map(|stored_block| Block::from(&stored_block)))
     }
 
+    pub fn get_block_by_hash(&mut self, hash_: &[u8; 32]) -> Result<Option<Block>, diesel::result::Error> {
+        use crate::schema::blocks::dsl::*;
+        let result = blocks
+            .filter(crate::schema::blocks::hash.eq(hash_.to_vec()))
+            .first::<crate::schema::StoredBlock>(&mut self.connection)
+            .optional()?;
+        Ok(result.map(|stored_block| Block::from(&stored_block)))
+    }
+
     pub fn get_latest_block(&mut self) -> Result<Option<Block>, diesel::result::Error> {
         use crate::schema::blocks::dsl::*;
         let result = blocks
