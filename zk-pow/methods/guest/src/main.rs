@@ -1,13 +1,8 @@
 use risc0_zkvm::guest::env;
 
 fn main() {
-    // TODO: Implement your guest code here
+    let x: u32 = env::read();
+    let y: u32 = env::read();
 
-    // read the input
-    let input: u32 = env::read();
-
-    // TODO: do something with the input
-
-    // write public output to the journal
-    env::commit(&input);
+    assert!(x + y == 1024, "x + y must be 1024");
 }

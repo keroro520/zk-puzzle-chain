@@ -11,46 +11,36 @@ fn main() {
         .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
         .init();
 
-    // An executor environment describes the configurations for the zkVM
-    // including program inputs.
-    // An default ExecutorEnv can be created like so:
-    // `let env = ExecutorEnv::builder().build().unwrap();`
-    // However, this `env` does not have any inputs.
-    //
-    // To add guest input to the executor environment, use
-    // ExecutorEnvBuilder::write().
-    // To access this method, you'll need to use ExecutorEnv::builder(), which
-    // creates an ExecutorEnvBuilder. When you're done adding input, call
-    // ExecutorEnvBuilder::build().
+    // Create two inputs that sum to 1024
+    let x: u32 = 512;
+    let y: u32 = 512;
 
-    // For example:
-    let input: u32 = 15 * u32::pow(2, 27) + 1;
+    // Create an executor environment and add the inputs
     let env = ExecutorEnv::builder()
-        .write(&input)
+        .write(&x)
+        .unwrap()
+        .write(&y)
         .unwrap()
         .build()
         .unwrap();
 
-    // Obtain the default prover.
+    // Obtain the default prover
     let prover = default_prover();
 
-    // Proof information by proving the specified ELF binary.
-    // This struct contains the receipt along with statistics about execution of the guest
+    // Prove the guest program
     let prove_info = prover
         .prove(env, ZK_POW_GUEST_ELF)
         .unwrap();
 
-    // extract the receipt.
+    // Extract the receipt
     let receipt = prove_info.receipt;
 
-    // TODO: Implement code for retrieving receipt journal here.
-
-    // For example:
-    let _output: u32 = receipt.journal.decode().unwrap();
-
-    // The receipt was verified at the end of proving, but the below code is an
-    // example of how someone else could verify this receipt.
+    // Verify the receipt
     receipt
         .verify(ZK_POW_GUEST_ID)
         .unwrap();
+
+    println!("Guest program successfully verified.");
+    println!("Inputs: x = {}, y = {}", x, y);
+    println!("Sum: x + y = {}", x + y);
 }
