@@ -1,6 +1,6 @@
 use jsonrpc_core::{Error, IoHandler, Result, Params, Value};
 use jsonrpc_http_server::ServerBuilder;
-
+use serde_json::json;
 use crate::core::Block;
 use crate::database::Database;
 
@@ -22,11 +22,48 @@ impl RpcServer {
         io.add_method("generate_block", move |params: Params| {
             let db = db.clone();
             async move {
-                let block: Block = params.parse()?;
+                match params {
+                    Params::Array(params) => {
+                        let block: Block = serde_json::from_value(params[0].clone())
+                            .map_err(|e| Error::invalid_params(format!("Invalid block format: {}", e)))?;
+                        let mut locked = db.lock()
+                            .map_err(internal_error)?;
+                        locked.insert_block(&block).map_err(internal_error)?;
+                        Ok(json!({
+                            "block_number": block.number,
+                            "block_hash": hex::encode(block.hash()),
+                        }))
+                    }
+                    _ => {
+                        return Err(Error::invalid_params("Invalid params"));
+                    }
+                }
+            }
+        });
+
+        let db = self.database.clone();
+        io.add_method("get_tip_block_number", move |_params: Params| {
+            let db = db.clone();
+            async move {
                 let mut locked = db.lock()
-                    .map_err(|_e| Error::internal_error())?;
-                locked.insert_block(&block).map_err(|_e| Error::internal_error())?;
-                Ok(Value::String("Block generated successfully".into()))
+                    .map_err(internal_error)?;
+                match locked.get_latest_block().map_err(internal_error)? {
+                    Some(block) => Ok(Value::Number(block.number.into())),
+                    None => Ok(Value::Number(0.into())),
+                }
+            }
+        });
+
+        let db = self.database.clone();
+        io.add_method("get_tip_block", move |_params: Params| {
+            let db = db.clone();
+            async move {
+                let mut locked = db.lock()
+                    .map_err(internal_error)?;
+                match locked.get_latest_block().map_err(internal_error)? {
+                    Some(block) => Ok(serde_json::to_value(block).map_err(internal_error)?),
+                    None => Ok(Value::Number(0.into())),
+                }
             }
         });
 
@@ -36,9 +73,9 @@ impl RpcServer {
             async move {
                 let block_number: u64 = params.parse()?;
                 let mut locked = db.lock()
-                    .map_err(|_e| Error::internal_error())?;
-                match locked.get_block(block_number as i64).map_err(|_| Error::internal_error())? {
-                    Some(block) => Ok(serde_json::to_value(block).map_err(|_| Error::internal_error())?),
+                    .map_err(internal_error)?;
+                match locked.get_block(block_number as i64).map_err(internal_error)? {
+                    Some(block) => Ok(serde_json::to_value(block).map_err(internal_error)?),
                     None => Err(Error::invalid_params("Block not found")),
                 }
             }
@@ -58,9 +95,9 @@ impl RpcServer {
                 hash.copy_from_slice(&block_hash);
                 
                 let mut locked = db.lock()
-                    .map_err(|_e| Error::internal_error())?;
-                match locked.get_block_by_hash(&hash).map_err(|_| Error::internal_error())? {
-                    Some(block) => Ok(serde_json::to_value(block).map_err(|_| Error::internal_error())?),
+                    .map_err(internal_error)?;
+                match locked.get_block_by_hash(&hash).map_err(internal_error)? {
+                    Some(block) => Ok(serde_json::to_value(block).map_err(internal_error)?),
                     None => Err(Error::invalid_params("Block not found")),
                 }
             }
@@ -68,7 +105,7 @@ impl RpcServer {
 
         let server = ServerBuilder::new(io)
             .threads(3)
-            .start_http(&format!("127.0.0.1:{}", port).parse().map_err(|_| Error::internal_error())?)
+            .start_http(&format!("127.0.0.1:{}", port).parse().map_err(internal_error)?)
             .expect("Failed to start RPC server");
 
         println!("RPC server started on port {}", port);
@@ -76,4 +113,9 @@ impl RpcServer {
 
         Ok(())
     }
+}
+
+fn internal_error(e: impl std::error::Error) -> Error {
+    eprintln!("Internal error: {:?}", e);
+    Error::internal_error()
 }
