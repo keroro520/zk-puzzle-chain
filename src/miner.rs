@@ -6,9 +6,16 @@ use methods::{
     ZK_POW_GUEST_ELF, ZK_POW_GUEST_ID
 };
 use risc0_zkvm::{default_prover, ExecutorEnv};
+use jsonrpsee::http_client::{HttpClientBuilder, HttpClient};
+use jsonrpsee::core::client::ClientT;
+use serde_json::{Map, Value};
+use tokio;
+
+
 use crate::core::Block;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
@@ -43,20 +50,21 @@ fn main() {
         .verify(ZK_POW_GUEST_ID)
         .unwrap();
 
+    let client: HttpClient = HttpClientBuilder::default()
+        .build("http://127.0.0.1:8999")
+        .unwrap();
+
     // Get Tip Block number via RPC `get_tip_block_number`
-
-    println!("Current tip block number: {}", tip_block_number);
-
-
+    let tip_block_number : u64= client.request("get_tip_block_number", jsonrpsee::rpc_params!()).await
+        .expect("Failed to get tip block number");
 
     // Generate a new block via `generate_block`
     let block = Block {
-        number: 0,
+        number: tip_block_number + 1,
         parent_hash: [0; 32],
         zk_pow_receipt: receipt,
     };
-
-    println!("Guest program successfully verified.");
-    println!("Inputs: x = {}, y = {}", x, y);
-    println!("Sum: x + y = {}", x + y);
+    let result: Value = client.request("generate_block", jsonrpsee::rpc_params!(block)).await
+        .expect("Failed to generate block");
+    println!("Block generated: {}", serde_json::to_string(&result).unwrap());
 }
