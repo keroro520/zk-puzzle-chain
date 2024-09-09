@@ -1,4 +1,4 @@
-# ZK-Puzzle-Chain: A Simple Blockchain using Zero-Knowledge Proofs for Consensus
+# ZK-Puzzle-Chain: A Simple Chain, Integrating RISC-Zero's zkVM for PoW
 
 ZK-Puzzle-Chain is an experimental blockchain project that combines the concepts of Proof-of-Work (PoW) and Zero-Knowledge Proofs (ZKP) to create a novel consensus mechanism.
 
