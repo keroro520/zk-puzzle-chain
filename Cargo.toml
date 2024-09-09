@@ -7,7 +7,6 @@ edition = "2021"
 [workspace]
 resolver = "2"
 members = [
-    "zk-miner",
     "zk-pow/host",
     "zk-pow/methods"
 ]
@@ -23,3 +22,13 @@ sha2 = "0.10.8"
 jsonrpc-core = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 hex = "0.4.3"
+methods = { path = "./zk-pow/methods" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[[bin]]
+name = "miner"
+path = "src/miner.rs"
+
+[[bin]]
+name = "client"
+path = "src/main.rs"
