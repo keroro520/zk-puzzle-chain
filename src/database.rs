@@ -1,9 +1,9 @@
-use diesel::prelude::*;
+use crate::core::Block;
+use crate::schema::blocks;
 use diesel::connection::SimpleConnection;
 use diesel::pg::PgConnection;
+use diesel::prelude::*;
 use std::env;
-use crate::schema::blocks;
-use crate::core::Block;
 
 pub struct Database {
     connection: PgConnection,
@@ -35,7 +35,10 @@ impl Database {
         Ok(result.map(|stored_block| Block::from(&stored_block)))
     }
 
-    pub fn get_block_by_hash(&mut self, hash_: &[u8; 32]) -> Result<Option<Block>, diesel::result::Error> {
+    pub fn get_block_by_hash(
+        &mut self,
+        hash_: &[u8; 32],
+    ) -> Result<Option<Block>, diesel::result::Error> {
         use crate::schema::blocks::dsl::*;
         let result = blocks
             .filter(crate::schema::blocks::hash.eq(hash_.to_vec()))
@@ -53,14 +56,21 @@ impl Database {
         Ok(result.map(|stored_block| Block::from(&stored_block)))
     }
 
-    pub fn get_blocks(&mut self, start: i64, limit: i64) -> Result<Vec<Block>, diesel::result::Error> {
+    pub fn get_blocks(
+        &mut self,
+        start: i64,
+        limit: i64,
+    ) -> Result<Vec<Block>, diesel::result::Error> {
         use crate::schema::blocks::dsl::*;
         let results = blocks
             .filter(crate::schema::blocks::number.ge(start))
             .order(crate::schema::blocks::number.asc())
             .limit(limit)
             .load::<crate::schema::StoredBlock>(&mut self.connection)?;
-        Ok(results.iter().map(|stored_block| Block::from(stored_block)).collect())
+        Ok(results
+            .iter()
+            .map(|stored_block| Block::from(stored_block))
+            .collect())
     }
 
     pub fn init_tables(&mut self) {
@@ -75,15 +85,20 @@ impl Database {
         ";
 
         // execute sql
-        self.connection.batch_execute(create_table_sql).expect("Failed to create table");
+        self.connection
+            .batch_execute(create_table_sql)
+            .expect("Failed to create table");
     }
 
     pub fn ensure_tables_initialized(&mut self) {
         use diesel::dsl::sql;
         use diesel::sql_types::Bool;
 
-        let table_exists: bool = diesel::select(sql::<Bool>("EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blocks')"))
-            .get_result(&mut self.connection).expect("Failed to check if table exists");
+        let table_exists: bool = diesel::select(sql::<Bool>(
+            "EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blocks')",
+        ))
+        .get_result(&mut self.connection)
+        .expect("Failed to check if table exists");
 
         if !table_exists {
             self.init_tables();
