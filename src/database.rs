@@ -1,4 +1,5 @@
 use diesel::prelude::*;
+use diesel::connection::SimpleConnection;
 use diesel::pg::PgConnection;
 use std::env;
 use crate::schema::blocks;
@@ -12,7 +13,9 @@ impl Database {
     pub fn new() -> Result<Self, diesel::ConnectionError> {
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let connection = PgConnection::establish(&database_url)?;
-        Ok(Database { connection })
+        let mut database = Database { connection };
+        database.ensure_tables_initialized();
+        Ok(database)
     }
 
     pub fn insert_block(&mut self, block: &Block) -> Result<(), diesel::result::Error> {
@@ -58,5 +61,32 @@ impl Database {
             .limit(limit)
             .load::<crate::schema::StoredBlock>(&mut self.connection)?;
         Ok(results.iter().map(|stored_block| Block::from(stored_block)).collect())
+    }
+
+    pub fn init_tables(&mut self) {
+        let create_table_sql = "
+            CREATE TABLE IF NOT EXISTS blocks (
+                number BIGINT NOT NULL,
+                hash BYTEA NOT NULL,
+                parent_hash BYTEA NOT NULL,
+                zk_pow_receipt BYTEA NOT NULL,
+                PRIMARY KEY (number, hash)
+            )
+        ";
+
+        // execute sql
+        self.connection.batch_execute(create_table_sql).expect("Failed to create table");
+    }
+
+    pub fn ensure_tables_initialized(&mut self) {
+        use diesel::dsl::sql;
+        use diesel::sql_types::Bool;
+
+        let table_exists: bool = diesel::select(sql::<Bool>("EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blocks')"))
+            .get_result(&mut self.connection).expect("Failed to check if table exists");
+
+        if !table_exists {
+            self.init_tables();
+        }
     }
 }
