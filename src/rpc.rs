@@ -1,5 +1,6 @@
 use crate::core::Block;
 use crate::database::Database;
+use crate::verification::BlockHeaderVerification;
 use jsonrpc_core::{Error, IoHandler, Params, Result, Value};
 use jsonrpc_http_server::ServerBuilder;
 use serde_json::json;
@@ -29,6 +30,16 @@ impl RpcServer {
                             serde_json::from_value(params[0].clone()).map_err(|e| {
                                 Error::invalid_params(format!("Invalid block format: {}", e))
                             })?;
+
+                        let verification = BlockHeaderVerification {
+                            parent_block_number: block.number - 1,
+                            parent_block_hash: block.parent_hash.clone(),
+                            block: block.clone(),
+                        };
+                        if let Err(e) = verification.verify() {
+                            return Err(Error::invalid_params(e));
+                        }
+
                         let mut locked = db.lock().map_err(internal_error)?;
                         locked.insert_block(&block).map_err(internal_error)?;
                         Ok(json!({

@@ -2,6 +2,7 @@ pub mod core;
 pub mod database;
 pub mod rpc;
 pub mod schema;
+pub mod verification;
 
 fn main() {
     dotenv::dotenv().ok();

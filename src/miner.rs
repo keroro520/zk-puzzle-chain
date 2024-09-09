@@ -6,7 +6,7 @@ use jsonrpsee::core::client::ClientT;
 use jsonrpsee::http_client::{HttpClient, HttpClientBuilder};
 use methods::{ZK_POW_GUEST_ELF, ZK_POW_GUEST_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
-use serde_json::{Map, Value};
+use serde_json::Value;
 use tokio;
 
 use crate::core::Block;
