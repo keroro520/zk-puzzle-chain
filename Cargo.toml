@@ -24,6 +24,8 @@ jsonrpc-http-server = "18.0.0"
 hex = "0.4.3"
 methods = { path = "./zk-pow/methods" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+jsonrpsee = { version = "0.24.3", features = ["http-client"] }
+tokio = { version = "1.40.0", features = ["full"] }
 
 [[bin]]
 name = "miner"
